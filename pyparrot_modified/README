@@ -1,4 +1,0 @@
-Here you can find a modded version of pyparrot including a tutorial on how to install it.
-
-pyparrot connects any wifi-capable (linux) laptop to the Bebop2 drone and allows to send commands to the drone. 
-It also streams live video and stores all captured frames to be used for the neural network.
