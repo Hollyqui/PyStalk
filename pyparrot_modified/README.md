@@ -41,9 +41,11 @@ sudo snap install vlc
 
 ### pull the modded version from github
 
+and navigate there via cd
+
 ```markdown
-git clone https://github.com/amymcgovern/pyparrot
-cd pyparrot
+git clone https://github.com/Hollyqui/Bebop2-Animal-Tracking
+cd ~/Bebop2-Animal-Tracking/pyparrot_modified
 ```
 
 ## How to connect to the drone
