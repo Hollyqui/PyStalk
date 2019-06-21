@@ -20,12 +20,13 @@ import subprocess
 import os
 from os.path import join
 import inspect
-from pyparrot.utils.NonBlockingStreamReader import NonBlockingStreamReader
+from pyparrot_modified.pyparrot.utils.NonBlockingStreamReader import NonBlockingStreamReader
 import shutil
 import signal
 
-class DroneVision:
+class DroneVision(threading.Thread):
     def __init__(self, drone_object, is_bebop, buffer_size=200, cleanup_old_images=True):
+        threading.Thread.__init__(self)
         """
         Setup your vision object and initialize your buffers.  You won't start seeing pictures
         until you call open_video.
@@ -69,7 +70,7 @@ class DroneVision:
                                                    args=(user_callback_function, user_callback_args))
 
 
-    def open_video(self):
+    def run(self):
         """
         Open the video stream using ffmpeg for capturing and processing.  The address for the stream
         is the same for all Mambos and is documented here:
