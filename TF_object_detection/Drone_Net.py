@@ -17,11 +17,11 @@ from object_detection.utils import visualization_utils as vis_util
 
 
 class Drone_Net(threading.Thread):
-    def __init__(self):
+    def __init__(self, vision):
         threading.Thread.__init__(self)
         # Define the video stream
         self.cap = cv2.VideoCapture(0)  # Change only if you have more than one webcams
-
+        self.vision = vision
         # What model to download.
         # Models can bee found here: https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
         MODEL_NAME = 'ssd_inception_v2_coco_2017_11_17'
@@ -50,6 +50,7 @@ class Drone_Net(threading.Thread):
                 tar_file.extract(file, os.getcwd())
 
         # Load a (frozen) Tensorflow model into memory.
+
         self.detection_graph = tf.Graph()
         with self.detection_graph.as_default():
             od_graph_def = tf.GraphDef()
@@ -72,65 +73,58 @@ class Drone_Net(threading.Thread):
             (im_height, im_width, 3)).astype(np.uint8)
 
     def run(self):
+
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+
         with self.detection_graph.as_default():
-            with tf.Session(graph=self.detection_graph) as sess:
+            with tf.Session(graph=self.detection_graph, config=config) as sess:
                 while True:
-
                     # Read frame from camera
-                    ret, image_np = self.cap.read()
-                    # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
-                    image_np_expanded = np.expand_dims(image_np, axis=0)
-                    # Extract image tensor
-                    image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
-                    # Extract detection boxes
-                    boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
-                    # Extract detection scores
-                    scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
-                    # Extract detection classes
-                    classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
-                    # Extract number of detectionsd
-                    num_detections = self.detection_graph.get_tensor_by_name(
-                        'num_detections:0')
-                    # Actual detection.
-                    (boxes, scores, classes, num_detections) = sess.run(
-                        [boxes, scores, classes, num_detections],
-                        feed_dict={image_tensor: image_np_expanded})
-                    # Visualization of the results of a detection.
-                    vis_util.visualize_boxes_and_labels_on_image_array(
-                        image_np,
-                        np.squeeze(boxes),
-                        np.squeeze(classes).astype(np.int32),
-                        np.squeeze(scores),
-                        self.category_index,
-                        use_normalized_coordinates=True,
-                        line_thickness=8)
-                    print(vis_util.get_box_coordinates(image_np,
-                        np.squeeze(boxes),
-                        np.squeeze(classes).astype(np.int32),
-                        np.squeeze(scores),
-                        self.category_index,
-                        use_normalized_coordinates=True,
-                        line_thickness=8))
+                    image_np = self.vision.get_latest_valid_picture()
+                    #print(image_np)
+                    #ret, image_np = self.cap.read()
+                    if(image_np is not None):
+                        print("something")
+                        # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+                        image_np_expanded = np.expand_dims(image_np, axis=0)
+                        # Extract image tensor
+                        image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
+                        # Extract detection boxes
+                        boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+                        # Extract detection scores
+                        scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
+                        # Extract detection classes
+                        classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
+                        # Extract number of detectionsd
+                        num_detections = self.detection_graph.get_tensor_by_name(
+                            'num_detections:0')
+                        # Actual detection.
+                        (boxes, scores, classes, num_detections) = sess.run(
+                            [boxes, scores, classes, num_detections],
+                            feed_dict={image_tensor: image_np_expanded})
+                        # Visualization of the results of a detection.
+                        # vis_util.visualize_boxes_and_labels_on_image_array(
+                        #     image_np,
+                        #     np.squeeze(boxes),
+                        #     np.squeeze(classes).astype(np.int32),
+                        #     np.squeeze(scores),
+                        #     self.category_index,
+                        #     use_normalized_coordinates=True,
+                        #     line_thickness=8)
+                        print(vis_util.get_box_coordinates(image_np,
+                            np.squeeze(boxes),
+                            np.squeeze(classes).astype(np.int32),
+                            np.squeeze(scores),
+                            self.category_index,
+                            use_normalized_coordinates=True,
+                            line_thickness=8))
 
-                    # height = 600
-                    # width = 800
-                    # filtered_boxes = []
-                    # print(scores[0])
-                    # print(boxes)
-                    # for box, score in zip(boxes, scores[0]):
-                    #     if(score > 0.5):
-                    #         ymin = int((box[0][0] * height))
-                    #         xmin = int((box[0][1] * width))
-                    #         ymax = int((box[0][2] * height))
-                    #         xmax = int((box[0][3] * width))
-                    #         cheese = [ymin, xmin, ymax, xmax]
-                    #         filtered_boxes.append(cheese)
-                    # print(filtered_boxes)
-                    cv2.imshow('object detection', cv2.resize(image_np, (800, 600)))
-
-                    if cv2.waitKey(10) & 0xFF == ord('q'):
-                        cv2.destroyAllWindows()
-                        break
+                    # cv2.imshow('object detection', cv2.resize(image_np, (800, 600)))
+                    #
+                    # if cv2.waitKey(10) & 0xFF == ord('q'):
+                    #     cv2.destroyAllWindows()
+                    #     break
 
 
     # get the box dimensions
