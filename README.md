@@ -38,6 +38,7 @@ Remark: We also tried to build our own CNN
 	*Optimisation
 		-two other keras backengines 
 		-flight path
+		-;ultiple threading
 		
 # Conclusion & Future Ideas 
 	*provide more operating systems compatibility
