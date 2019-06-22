@@ -14,10 +14,11 @@ from matplotlib import pyplot as plt
 from PIL import Image
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
-
+from Movement_Processing import Movement_processing
 
 class Drone_Net(threading.Thread):
-    def __init__(self, vision):
+    def __init__(self, vision, move):
+        self.move = move
         threading.Thread.__init__(self)
         # Define the video stream
         self.cap = cv2.VideoCapture(0)  # Change only if you have more than one webcams
@@ -83,9 +84,8 @@ class Drone_Net(threading.Thread):
                     # Read frame from camera
                     image_np = self.vision.get_latest_valid_picture()
                     #print(image_np)
-                    #ret, image_np = self.cap.read()
+                    # ret, image_np = self.cap.read()
                     if(image_np is not None):
-                        print("something")
                         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
                         image_np_expanded = np.expand_dims(image_np, axis=0)
                         # Extract image tensor
@@ -111,14 +111,19 @@ class Drone_Net(threading.Thread):
                         #     np.squeeze(scores),
                         #     self.category_index,
                         #     use_normalized_coordinates=True,
-                        #     line_thickness=8)
-                        print(vis_util.get_box_coordinates(image_np,
-                            np.squeeze(boxes),
-                            np.squeeze(classes).astype(np.int32),
-                            np.squeeze(scores),
-                            self.category_index,
-                            use_normalized_coordinates=True,
-                            line_thickness=8))
+                        #     line_thickness=8,
+                        #     only_get=1)
+                        box = vis_util.get_box_coordinates(image_np,
+                                                           np.squeeze(boxes),
+                                                           np.squeeze(classes).astype(np.int32),
+                                                           np.squeeze(scores),
+                                                           self.category_index,
+                                                           use_normalized_coordinates=True,
+                                                           line_thickness=8,
+                                                           only_get=1)
+                        print(box)
+                        x, y = self.move.compute(box[0], box[1], box[2], box[3])
+
 
                     # cv2.imshow('object detection', cv2.resize(image_np, (800, 600)))
                     #
