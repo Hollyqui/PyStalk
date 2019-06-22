@@ -699,7 +699,8 @@ def visualize_boxes_and_labels_on_image_array(
     groundtruth_box_visualization_color='black',
     skip_scores=False,
     skip_labels=False,
-    skip_track_ids=False):
+    skip_track_ids=False,
+    only_get=None):
   """Overlay labeled boxes on an image with formatted scores and label names.
 
   This function groups boxes that correspond to the same location
@@ -776,26 +777,27 @@ def visualize_boxes_and_labels_on_image_array(
             else:
               class_name = 'N/A'
             display_str = str(class_name)
-        if not skip_scores:
-          if not display_str:
-            display_str = '{}%'.format(int(100*scores[i]))
-          else:
-            display_str = '{}: {}%'.format(display_str, int(100*scores[i]))
-        if not skip_track_ids and track_ids is not None:
-          if not display_str:
-            display_str = 'ID {}'.format(track_ids[i])
-          else:
-            display_str = '{}: ID {}'.format(display_str, track_ids[i])
-        box_to_display_str_map[box].append(display_str)
-        if agnostic_mode:
-          box_to_color_map[box] = 'DarkOrange'
-        elif track_ids is not None:
-          prime_multipler = _get_multiplier_for_color_randomness()
-          box_to_color_map[box] = STANDARD_COLORS[
-              (prime_multipler * track_ids[i]) % len(STANDARD_COLORS)]
-        else:
-          box_to_color_map[box] = STANDARD_COLORS[
-              classes[i] % len(STANDARD_COLORS)]
+        if classes[i] == only_get or only_get == None:
+            if not skip_scores:
+                if not display_str:
+                    display_str = '{}%'.format(int(100 * scores[i]))
+                else:
+                    display_str = '{}: {}%'.format(display_str, int(100 * scores[i]))
+            if not skip_track_ids and track_ids is not None:
+                if not display_str:
+                    display_str = 'ID {}'.format(track_ids[i])
+                else:
+                    display_str = '{}: ID {}'.format(display_str, track_ids[i])
+            box_to_display_str_map[box].append(display_str)
+            if agnostic_mode:
+                box_to_color_map[box] = 'DarkOrange'
+            elif track_ids is not None:
+                prime_multipler = _get_multiplier_for_color_randomness()
+                box_to_color_map[box] = STANDARD_COLORS[
+                    (prime_multipler * track_ids[i]) % len(STANDARD_COLORS)]
+            else:
+                box_to_color_map[box] = STANDARD_COLORS[
+                    classes[i] % len(STANDARD_COLORS)]
 
   # Draw all boxes onto image.
   for box, color in box_to_color_map.items():
@@ -851,7 +853,8 @@ def get_box_coordinates(
     groundtruth_box_visualization_color='black',
     skip_scores=False,
     skip_labels=False,
-    skip_track_ids=False):
+    skip_track_ids=False,
+    only_get=None):
   """Overlay labeled boxes on an image with formatted scores and label names.
 
   This function groups boxes that correspond to the same location
@@ -928,26 +931,29 @@ def get_box_coordinates(
             else:
               class_name = 'N/A'
             display_str = str(class_name)
-        if not skip_scores:
-          if not display_str:
-            display_str = '{}%'.format(int(100*scores[i]))
-          else:
-            display_str = '{}: {}%'.format(display_str, int(100*scores[i]))
-        if not skip_track_ids and track_ids is not None:
-          if not display_str:
-            display_str = 'ID {}'.format(track_ids[i])
-          else:
-            display_str = '{}: ID {}'.format(display_str, track_ids[i])
-        box_to_display_str_map[box].append(display_str)
-        if agnostic_mode:
-          box_to_color_map[box] = 'DarkOrange'
-        elif track_ids is not None:
-          prime_multipler = _get_multiplier_for_color_randomness()
-          box_to_color_map[box] = STANDARD_COLORS[
-              (prime_multipler * track_ids[i]) % len(STANDARD_COLORS)]
-        else:
-          box_to_color_map[box] = STANDARD_COLORS[
-              classes[i] % len(STANDARD_COLORS)]
+
+
+        if classes[i] == only_get or only_get == None:
+            if not skip_scores:
+              if not display_str:
+                display_str = '{}%'.format(int(100*scores[i]))
+              else:
+                display_str = '{}: {}%'.format(display_str, int(100*scores[i]))
+            if not skip_track_ids and track_ids is not None:
+              if not display_str:
+                display_str = 'ID {}'.format(track_ids[i])
+              else:
+                display_str = '{}: ID {}'.format(display_str, track_ids[i])
+            box_to_display_str_map[box].append(display_str)
+            if agnostic_mode:
+              box_to_color_map[box] = 'DarkOrange'
+            elif track_ids is not None:
+              prime_multipler = _get_multiplier_for_color_randomness()
+              box_to_color_map[box] = STANDARD_COLORS[
+                  (prime_multipler * track_ids[i]) % len(STANDARD_COLORS)]
+            else:
+              box_to_color_map[box] = STANDARD_COLORS[
+                  classes[i] % len(STANDARD_COLORS)]
 
   # Draw all boxes onto image.
   box_list = []
