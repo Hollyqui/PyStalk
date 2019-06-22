@@ -22,11 +22,12 @@ from os.path import join
 import inspect
 import tempfile
 import sys
-import pyparrot.utils.vlc as vlc
+import pyparrot_modified.pyparrot.utils.vlc as vlc
 from PyQt5.QtCore import Qt, QTimer, QThread
 from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtWidgets import QMainWindow, QWidget, QFrame, QSlider, QHBoxLayout, QPushButton, \
     QVBoxLayout, QAction, QFileDialog, QApplication
+import threading
 
 
 class Player(QMainWindow):
@@ -172,8 +173,10 @@ class UserCodeToRun(QThread):
         self.user_vision_function(self.drone_vision, self.user_args)
 
 
-class DroneVisionGUI:
-    def __init__(self, drone_object, is_bebop, user_code_to_run, user_args, buffer_size=100, network_caching=200, fps=20):
+class DroneVisionGUI(threading.Thread):
+
+    def __init__(self, drone_object, is_bebop, user_code_to_run, user_args, move, buffer_size=100, network_caching=200, fps=20):
+        threading.Thread.__init__(self)
         """
         Setup your vision object and initialize your buffers.  You won't start seeing pictures
         until you call open_video.
@@ -187,6 +190,8 @@ class DroneVisionGUI:
         :param network_caching: buffering time in milli-seconds, 200 should be enough, 150 works on some devices
         :param fps: frame rate for the vision
         """
+        self.move = move
+        self.img = None
         self.fps = fps
         self.vision_interval = int(1000 * 1.0 / self.fps)
         self.buffer_size = buffer_size
@@ -244,7 +249,7 @@ class DroneVisionGUI:
         self.user_vision_thread = UserVisionProcessingThread(user_callback_function, user_callback_args, self)
 
 
-    def open_video(self):
+    def run(self):
         """
         Open the video stream using vlc.  Note that this version is blocking meaning
         this function will NEVER return.  If you want to run your own code and not just
@@ -328,8 +333,7 @@ class DroneVisionGUI:
 
         :return:
         """
-
-        # start with no new data
+        #start with no new data
         self.new_frame = False
 
         # run forever, trying to grab the latest image
@@ -341,24 +345,24 @@ class DroneVisionGUI:
             # save the current picture from the stream
             self.player.video_take_snapshot(0, self.file, 0, 0)
             # read the picture into opencv
-            img = cv2.imread(self.file)
-
-            # Hollyqui: saving all frames; you've gotta change the file path in order
-            # for it to work for you
-            path = "/home/felix/pyparrot/pyparrot/images"
-            if (img is not None):
-                filename = "test_image_%06d.png" % self.index
-                cv2.imwrite(os.path.join(path , filename), img)
-                #print("image saved as: ", path + filename)
-                self.index += 1
-
+            self.img = cv2.imread(self.file)
+        #
+        #     # Hollyqui: saving all frames; you've gotta change the file path in order
+        #     # for it to work for you
+        #     path = "/home/felix/pyparrot/pyparrot/images"
+        #     # if (img is not None):
+        #     #     filename = "test_image_%06d.png" % self.index
+        #     #     cv2.imwrite(os.path.join(path , filename), img)
+        #     #     #print("image saved as: ", path + filename)
+        #     #     self.index += 1
+        #
             # sometimes cv2 returns a None object so skip putting those in the array
-            if (img is not None):
+            if (self.img is not None):
                 # got a new image, save it to the buffer directly
                 self.buffer_index += 1
                 self.buffer_index %= self.buffer_size
                 #print video_frame
-                self.buffer[self.buffer_index] = img
+                self.buffer[self.buffer_index] = self.img
                 self.new_frame = True
 
     def get_latest_valid_picture(self):
