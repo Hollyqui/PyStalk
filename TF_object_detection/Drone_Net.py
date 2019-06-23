@@ -16,16 +16,17 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 from Movement_Processing import Movement_processing
 
+
 class Drone_Net(threading.Thread):
-    def __init__(self, vision, move):
-        self.move = move
+    def __init__(self, vision, process):
+        self.process = process
         threading.Thread.__init__(self)
         # Define the video stream
         self.cap = cv2.VideoCapture(0)  # Change only if you have more than one webcams
         self.vision = vision
         # What model to download.
         # Models can bee found here: https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
-        MODEL_NAME = 'ssd_inception_v2_coco_2017_11_17'
+        MODEL_NAME = 'ssd_inception_v2_coco_2018_01_28'
         MODEL_FILE = MODEL_NAME + '.tar.gz'
         DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
 
@@ -83,9 +84,9 @@ class Drone_Net(threading.Thread):
                 while True:
                     # Read frame from camera
                     image_np = self.vision.get_latest_valid_picture()
-                    #print(image_np)
+                    # print(image_np)
                     # ret, image_np = self.cap.read()
-                    if(image_np is not None):
+                    if (image_np is not None):
                         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
                         image_np_expanded = np.expand_dims(image_np, axis=0)
                         # Extract image tensor
@@ -121,15 +122,17 @@ class Drone_Net(threading.Thread):
                                                            use_normalized_coordinates=True,
                                                            line_thickness=8,
                                                            only_get=1)
-                        print(box)
-                        x, y = self.move.compute(box[0], box[1], box[2], box[3])
-
-
+                        #print("box:", box)
+                        box = np.array(box)
+                        if(not box.sum() == 0):
+                            box = box[0]
+                         #   print(box)
+                            self.process.compute(box[0], box[1], box[2], box[3])
+                            #print("something")
                     # cv2.imshow('object detection', cv2.resize(image_np, (800, 600)))
                     #
                     # if cv2.waitKey(10) & 0xFF == ord('q'):
                     #     cv2.destroyAllWindows()
                     #     break
-
 
     # get the box dimensions
