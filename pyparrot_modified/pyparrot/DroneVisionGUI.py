@@ -26,7 +26,7 @@ import pyparrot_modified.pyparrot.utils.vlc as vlc
 from PyQt5.QtCore import Qt, QTimer, QThread
 from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtWidgets import QMainWindow, QWidget, QFrame, QSlider, QHBoxLayout, QPushButton, \
-    QVBoxLayout, QAction, QFileDialog, QApplication
+    QVBoxLayout, QAction, QFileDialog, QApplication, QLabel, QProgressBar
 import threading
 
 
@@ -58,12 +58,14 @@ class Player(QMainWindow):
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
     """
-    def __init__(self, vlc_player, drone_gui):
+    def __init__(self, vlc_player, drone_gui, move, process):
         """
         Create a UI window for the VLC player
         :param vlc_player: the VLC player (created outside the function)
         """
+        self.process = process
         QMainWindow.__init__(self)
+        self.move = move
         self.setWindowTitle("VLC Drone Video Player")
 
         # save the media player
@@ -75,7 +77,11 @@ class Player(QMainWindow):
         # create the GUI
         self.createUI()
 
+    def set_values(self, yaw, pitch):
+        self.pbar.setValue(yaw)
+        self.pitch_bar.setValue(pitch)
 
+    # here the GUI and all it's buttons are created
     def createUI(self):
         """
         Set up the window for the VLC viewer
@@ -104,6 +110,10 @@ class Player(QMainWindow):
         self.hbuttonbox.addWidget(self.landbutton)
         self.landbutton.clicked.connect(self.drone_vision.land)
 
+        self.landsafebutton = QPushButton("Land safe")
+        self.hbuttonbox.addWidget(self.landsafebutton)
+        self.landsafebutton.clicked.connect(self.move.kill)
+
         self.stopbutton = QPushButton("Quit")
         self.hbuttonbox.addWidget(self.stopbutton)
         self.stopbutton.clicked.connect(self.drone_vision.close_exit)
@@ -112,7 +122,29 @@ class Player(QMainWindow):
         self.vboxlayout.addWidget(self.videoframe)
         self.vboxlayout.addLayout(self.hbuttonbox)
 
+        sld = QSlider(Qt.Horizontal, self)
+        sld.setFocusPolicy(Qt.NoFocus)
+        sld.setGeometry(30, 40, 100, 30)
+        sld.valueChanged[int].connect(self.change_distance) # slide goes from 0 to -1000
+
+        self.pbar = QProgressBar(self)
+        self.pbar.setGeometry(30, 40, 200, 25)
+        self.pbar.move(0, 100)
+
+        self.pitch_bar = QProgressBar(self)
+        self.pitch_bar.setGeometry(30, 40, 200, 25)
+        self.pitch_bar.move(0,200)
+        self.pitch_bar.setValue(60)
+
+        self.label = QLabel(self)
+
+        self.setGeometry(300, 300, 280, 170)
+        self.setWindowTitle('QSlider')
+        self.show()
+
         self.widget.setLayout(self.vboxlayout)
+
+
 
         # the media player has to be 'connected' to the QFrame
         # (otherwise a video would be displayed in it's own window)
@@ -126,6 +158,9 @@ class Player(QMainWindow):
         elif sys.platform == "darwin": # for MacOS
             self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
 
+    def change_distance(self, value):
+        # convert the slider input to 0 to 1 and feed it to the movement function
+        self.process.set_distance(value/(100))
 
 class UserVisionProcessingThread(QThread):
 
@@ -155,28 +190,13 @@ class UserVisionProcessingThread(QThread):
         print("exiting user vision thread")
         self.exit()
 
-class UserCodeToRun(QThread):
-    def __init__(self, user_function, user_args, drone_vision):
-        """
-        :param user_function: user code to run (presumably flies the drone)
-        :param user_args: optional arguments to the user function
-        """
-        QThread.__init__(self)
-        self.user_vision_function = user_function
-        self.user_args = user_args
-        self.drone_vision = drone_vision
-
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-        self.user_vision_function(self.drone_vision, self.user_args)
-
 
 class DroneVisionGUI(threading.Thread):
 
-    def __init__(self, drone_object, is_bebop, user_code_to_run, user_args, move, buffer_size=100, network_caching=200, fps=20):
+    def __init__(self, drone_object, is_bebop, user_args, move, process, buffer_size=100, network_caching=200, fps=20):
         threading.Thread.__init__(self)
+        self.move = move
+        self.process = process
         """
         Setup your vision object and initialize your buffers.  You won't start seeing pictures
         until you call open_video.
@@ -190,7 +210,6 @@ class DroneVisionGUI(threading.Thread):
         :param network_caching: buffering time in milli-seconds, 200 should be enough, 150 works on some devices
         :param fps: frame rate for the vision
         """
-        self.move = move
         self.img = None
         self.fps = fps
         self.vision_interval = int(1000 * 1.0 / self.fps)
@@ -215,9 +234,8 @@ class DroneVisionGUI(threading.Thread):
         self.network_caching = network_caching
 
         # save the user function and args for calling from the run button
-        self.user_code_to_run = user_code_to_run
         self.user_args = user_args
-        self.user_thread = UserCodeToRun(user_code_to_run, user_args, self)
+        # self.user_thread = UserCodeToRun(user_code_to_run, user_args, self)
 
         # in case we never setup a user callback function
         self.user_vision_thread = None
@@ -302,7 +320,7 @@ class DroneVisionGUI(threading.Thread):
         """
         # open/draw the GUI
         app = QApplication(sys.argv)
-        self.vlc_gui = Player(vlc_player=self.player, drone_gui=self)
+        self.vlc_gui = Player(vlc_player=self.player, drone_gui=self, move=self.move, process=self.process)
         self.vlc_gui.show()
         self.vlc_gui.resize(640, 480)
 
@@ -344,6 +362,7 @@ class DroneVisionGUI(threading.Thread):
             #self.file = tempfile.SpooledTemporaryFile(max_size=32768)
             # save the current picture from the stream
             self.player.video_take_snapshot(0, self.file, 0, 0)
+            self.vlc_gui.set_values(50 + self.move.get_yaw(), 50+self.move.get_pitch())
             # read the picture into opencv
             self.img = cv2.imread(self.file)
         #
@@ -405,6 +424,16 @@ class DroneVisionGUI(threading.Thread):
         else:
             if (not self.drone_object.is_landed()):
                 self.drone_object.safe_land(5)
+
+    def landsafe(self):
+        # land the drone
+        if (self.is_bebop):
+            if (not self.drone_object.is_landed()):
+                self.drone_object.safe_land(5)
+        else:
+            if (not self.drone_object.is_landed()):
+                self.drone_object.safe_land(5)
+
 
 
     def close_video(self):
