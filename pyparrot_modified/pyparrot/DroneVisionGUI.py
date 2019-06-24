@@ -127,8 +127,15 @@ class Player(QMainWindow):
         sld = QSlider(Qt.Horizontal, self)
         sld.setFocusPolicy(Qt.NoFocus)
         sld.setGeometry(30, 40, 100, 30)
-        sld.setValue(50)
-        sld.valueChanged[int].connect(self.change_distance)
+        sld.setValue(60)
+        sld.valueChanged[int].connect(self.change_distance_max)
+
+        sld1 = QSlider(Qt.Horizontal, self)
+        sld1.setFocusPolicy(Qt.NoFocus)
+        sld1.setGeometry(30, 40, 100, 30)
+        sld1.setValue(40)
+        sld1.valueChanged[int].connect(self.change_distance_min)
+        sld1.move(100, 0)
 
         # shows how much the drone 'wants' to rotate to the left/right
         # (this corresponds to where on the x-axis the tracked object is)
@@ -163,7 +170,11 @@ class Player(QMainWindow):
         elif sys.platform == "darwin":  # for MacOS
             self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
 
-    def change_distance(self, value):
+    def change_distance_max(self, value):
+        # convert the slider input to 0 to 1 and feed it to the movement function
+        self.process.set_distance(value / (100))
+
+    def change_distance_min(self, value):
         # convert the slider input to 0 to 1 and feed it to the movement function
         self.process.set_distance(value / (100))
 
