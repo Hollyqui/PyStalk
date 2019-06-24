@@ -19,8 +19,11 @@ Remark: We also tried to build our own CNN
 		-drone reaction: specific motion according to CNN results
 # Materials and methods 
 	*Data acquisition and processing
+	
 ![Photo extraction from video](https://i.imgur.com/1MYnlmA.gif)
+
 ![Bounding images](https://i.imgur.com/bMDI5wy.gif)
+
 	*Python & Keras/Tensorflow
 	*Objection detection software by tensorflow
 	*How to build a CNN 
