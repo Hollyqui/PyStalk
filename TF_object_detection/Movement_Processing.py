@@ -10,17 +10,10 @@ class Movement_processing:
         self.box_size = 0
         self.pitch = 0
         self.value = 0
-        self.max_distance = 0
-        self.min_distance = 0
+        self.max_box_size = 0
+        self.min_box_size = 0
+        self.tilt = 0
 
-    def get_rotation(self):
-        return self.rotation_dir
-
-    def get_velocity(self):
-        return self.velocity
-
-    def get_box_size(self):
-        return self.box_size
 
     def compute(self, ymin, xmin, ymax, xmax):
         self.y_avg = (ymin + ymax) / 2
@@ -29,29 +22,47 @@ class Movement_processing:
         y = ((ymin + ymax) / 2 - 0.5) * 40
         x = ((xmax + xmin) / 2 - 0.5) * 40
         self.rotation_dir = x
-        self.velocity = y
+        self.tilt = y * (-1)
+        # print('compute running', self.rotation_dir, ' ', self.tilt)
         self.set_distance()
+
+    # getters:
+    def get_tilt(self):
+        return self.tilt
+
+    def get_pitch(self):
+        return self.pitch
+
+    def get_rotation(self):
+        return self.rotation_dir
+
+    # setters:
+    def set_tilt(self, tilt):
+        self.tilt = tilt
+    def set_pitch(self, pitch):
+        self.pitch = pitch
+    def set_rotation(self, rotation):
+        self.rotation_dir = rotation
+
 
     def set_distance(self):
 
         if (self.box_size > 0):
-            if self.box_size > self.max_distance:
-                self.pitch = (self.box_size - self.max_distance) * -30
-            elif self.box_size < self.min_distance:
-                self.pitch = (self.box_size - self.min_distance) * -30
+            if self.box_size > self.max_box_size:
+                self.pitch = (self.box_size - self.max_box_size) * -30
+            elif self.box_size < self.min_box_size:
+                self.pitch = (self.box_size - self.min_box_size) * -30
             else:
                 self.pitch = 0
 
         else:
             self.pitch = 0
 
-    def get_pitch(self):
-        return self.pitch
-    def set_max_distance(self, max):
-        self.max_distance = max
+    def set_max_box_size(self, max):
+        self.max_box_size = max
 
-    def set_min_distance(self, min):
-        self.min_distance = min
+    def set_min_box_size(self, min):
+        self.min_box_size = min
 
 
 class Move_drone(threading.Thread):
@@ -70,6 +81,8 @@ class Move_drone(threading.Thread):
         self.yaw = 0
         self.vertical_movement = 0
         self.value = 0
+        self.tilt = 0
+        self.camera_angle = 0
 
     # kills the drone and prevents any further movement from being passed on.
     def kill(self):
@@ -84,10 +97,24 @@ class Move_drone(threading.Thread):
         # moves the drone as long as it wasn't killed
         while self.killed == False:
             self.yaw = self.process.get_rotation()
-            self.pitch = self.process.get_pitch()
+            self.tilt = self.process.get_tilt()
             #self.bebop.fly_direct(roll=0, yaw=self.yaw, pitch=self.pitch, vertical_movement=0, duration=0.1)
-
+            if 60 >= self.camera_angle >= -60:
+                self.bebop.pan_tilt_camera_velocity(tilt_velocity=self.tilt, pan_velocity=0, duration=0.1)
+                self.camera_angle += self.tilt*0.1
     # all the getter functions:
+    def get_rotation(self):
+        return self.rotation_dir
+
+    def get_pitch(self):
+        return self.pitch
+
+    def get_box_size(self):
+        return self.box_size
+
+    def get_tilt(self):
+        return self.tilt
+
     def get_vertical_movement(self):
         return self.vertical_movement
 
