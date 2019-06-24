@@ -128,13 +128,13 @@ class Player(QMainWindow):
         sld.setFocusPolicy(Qt.NoFocus)
         sld.setGeometry(30, 40, 100, 30)
         sld.setValue(60)
-        sld.valueChanged[int].connect(self.change_distance_max)
+        sld.valueChanged[int].connect(self.change_box_size_max)
 
         sld1 = QSlider(Qt.Horizontal, self)
         sld1.setFocusPolicy(Qt.NoFocus)
         sld1.setGeometry(30, 40, 100, 30)
         sld1.setValue(40)
-        sld1.valueChanged[int].connect(self.change_distance_min)
+        sld1.valueChanged[int].connect(self.change_box_size_min)
         sld1.move(100, 0)
 
         # shows how much the drone 'wants' to rotate to the left/right
@@ -170,13 +170,13 @@ class Player(QMainWindow):
         elif sys.platform == "darwin":  # for MacOS
             self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
 
-    def change_distance_max(self, value):
+    def change_box_size_max(self, value):
         # convert the slider input to 0 to 1 and feed it to the movement function
-        self.process.set_distance(value / (100))
+        self.process.set_max_box_size(value / (100))
 
-    def change_distance_min(self, value):
+    def change_box_size_min(self, value):
         # convert the slider input to 0 to 1 and feed it to the movement function
-        self.process.set_distance(value / (100))
+        self.process.set_min_box_size(value / (100))
 
 
 class UserVisionProcessingThread(QThread):
@@ -214,6 +214,7 @@ class DroneVisionGUI(threading.Thread):
         threading.Thread.__init__(self)
         self.move = move
         self.process = process
+        self.net = None
         """
         Setup your vision object and initialize your buffers.  You won't start seeing pictures
         until you call open_video.
@@ -271,8 +272,11 @@ class DroneVisionGUI(threading.Thread):
         button.setEnabled(False)
         self.user_thread.start()
 
+    def feed_net(self, net):
+        self.net = net
+
     def set_user_callback_function(self, user_callback_function=None, user_callback_args=None):
-        """
+        self.return_ = """
         Set the (optional) user callback function for handling the new vision frames.  This is
         run in a separate thread that starts when you start the vision buffering
 
@@ -379,6 +383,23 @@ class DroneVisionGUI(threading.Thread):
             self.vlc_gui.set_values(50 + self.move.get_yaw(), 50 + self.move.get_pitch())
             # read the picture into opencv
             self.img = cv2.imread(self.file)
+            self.img = cv2.resize(self.img, (856, 480))
+
+            boxes = self.net.get_boxes()
+            adjusted_box = self.net.get_adjusted_box()
+            # here a second stream is initialized showing all the frames with the corresponding boxes and
+            # drone outputs
+            width = 860
+            height = 480
+            if(boxes is not None):
+                for i in range(len(boxes)):
+                    box = boxes[i]
+                    self.img = cv2.rectangle(self.img, (int(box[1]*width), int(box[0]*height)), (int(box[3]*width), int(box[2]*height)), (0, 0, 255), 7)
+            if(adjusted_box is not None):
+                self.img = self.img = cv2.rectangle(self.img, (int(adjusted_box[1]*width), int(adjusted_box[0]*height)), (int(adjusted_box[3]*width), int(adjusted_box[2]*height)), (255, 255, 255), 5)
+            self.img = cv2.arrowedLine(self.img, (int(width/2), int(height/2)), (int(width/2+self.move.get_yaw()*10), int(height/2)), (0, 255, 0), 5)
+            self.img = cv2.arrowedLine(self.img, (int(width / 2), int(height / 2)), (int(width / 2), int((height/2)+ self.move.get_tilt()*10)), (255, 0, 0), 5)
+            cv2.imshow("stream:", self.img)
 
             # sometimes cv2 returns a None object so skip putting those in the array
             if (self.img is not None):
