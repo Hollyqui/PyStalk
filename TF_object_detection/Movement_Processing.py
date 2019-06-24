@@ -10,6 +10,8 @@ class Movement_processing:
         self.box_size = 0
         self.pitch = 0
         self.value = 0
+        self.max_distance = 0
+        self.min_distance = 0
 
     def get_rotation(self):
         return self.rotation_dir
@@ -28,17 +30,28 @@ class Movement_processing:
         x = ((xmax + xmin) / 2 - 0.5) * 40
         self.rotation_dir = x
         self.velocity = y
-        self.set_distance(self.value)
+        self.set_distance()
 
-    def set_distance(self, value):
-        self.value = value
+    def set_distance(self):
+
         if (self.box_size > 0):
-            self.pitch = (self.box_size - value) * -30
+            if self.box_size > self.max_distance:
+                self.pitch = (self.box_size - self.max_distance) * -30
+            elif self.box_size < self.min_distance:
+                self.pitch = (self.box_size - self.min_distance) * -30
+            else:
+                self.pitch = 0
+
         else:
             self.pitch = 0
 
     def get_pitch(self):
         return self.pitch
+    def set_max_distance(self, max):
+        self.max_distance = max
+
+    def set_min_distance(self, min):
+        self.min_distance = min
 
 
 class Move_drone(threading.Thread):
