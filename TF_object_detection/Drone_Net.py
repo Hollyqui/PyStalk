@@ -1,20 +1,14 @@
-import numpy as np
 import os
-import six.moves.urllib as urllib
-import sys
 import tarfile
-import tensorflow as tf
-import zipfile
-import cv2
 import threading
 
-from collections import defaultdict
-from io import StringIO
-from matplotlib import pyplot as plt
-from PIL import Image
+import cv2
+import numpy as np
+import six.moves.urllib as urllib
+import tensorflow as tf
+
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
-from Movement_Processing import Movement_processing
 
 
 class Drone_Net(threading.Thread):
@@ -25,7 +19,8 @@ class Drone_Net(threading.Thread):
         self.cap = cv2.VideoCapture(0)  # Change only if you have more than one webcams
         self.vision = vision
         # What model to download.
-        # Models can bee found here: https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
+        # Models can bee found here:
+        # https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
         MODEL_NAME = 'ssd_inception_v2_coco_2018_01_28'
         MODEL_FILE = MODEL_NAME + '.tar.gz'
         DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
@@ -62,7 +57,9 @@ class Drone_Net(threading.Thread):
                 tf.import_graph_def(od_graph_def, name='')
 
         # Loading label map
-        # Label maps map indices to category names, so that when our convolution network predicts `5`, we know that this corresponds to `airplane`.  Here we use internal utility functions, but anything that returns a dictionary mapping integers to appropriate string labels would be fine
+        # Label maps map indices to category names, so that when our convolution network predicts `5`,
+        # we know that this corresponds to `airplane`.  Here we use internal utility functions,
+        # but anything that returns a dictionary mapping integers to appropriate string labels would be fine
         label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
         categories = label_map_util.convert_label_map_to_categories(
             label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
@@ -74,6 +71,7 @@ class Drone_Net(threading.Thread):
         return np.array(image.getdata()).reshape(
             (im_height, im_width, 3)).astype(np.uint8)
 
+    # runs the neural net detection algorithm as a thread
     def run(self):
 
         config = tf.ConfigProto()
@@ -114,10 +112,13 @@ class Drone_Net(threading.Thread):
                                                            line_thickness=8,
                                                            only_get=1)
                         box = self.compute_boxes(box)
-                        if(not box.sum() == 0):
+                        if (not box.sum() == 0):
                             box = box[0]
                             self.process.compute(box[0], box[1], box[2], box[3])
 
+    # for now a placeholder function; this will computer what the 'correct' box out of the list is,
+    # and what's it 'proper' position is; e.g. if there's a frame where it doesn't detect anything it will
+    # fill in a box for that frame
     def compute_boxes(self, coordinates):
         coordinates = np.array(coordinates)
         return coordinates
