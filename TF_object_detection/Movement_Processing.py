@@ -18,6 +18,8 @@ class Movement_processing:
         self.x_avg = 0
         self.y_avg = 0
         self.box_size = 0
+        self.pitch = 0
+        self.value = 0
     def get_rotation(self):
         return self.rotation_dir
     def get_velocity(self):
@@ -29,13 +31,28 @@ class Movement_processing:
     def compute(self, ymin,  xmin, ymax, xmax):
         self.y_avg = (ymin+ymax)/2
         self.x_avg = (xmin+xmax)/2
-        self.box_size = abs((ymax-ymin)*(xmax-xmin))
-        print("box bounds:", ymin, ymax, xmin, xmax)
-        print("size:", self.box_size)
-        y = ((ymin+ymax)/2 - 0.5)*20
+        self.box_size = abs((ymax-ymin)*(xmax-xmin))*3
+        # print("box bounds:", ymin, ymax, xmin, xmax)
+        #print("size:", self.box_size)
+        # print("yaw:", self.rotation_dir)
+        # print("pitch:", self.velocity)
+        y = ((ymin+ymax)/2 - 0.5)*40
         x = ((xmax+xmin)/2 - 0.5)*40
         self.rotation_dir = x
         self.velocity = y
+        self.set_distance(self.value)
+    def set_distance(self, value):
+        self.value = value
+        if(self.box_size > 0):
+            if(abs(self.box_size-value)*(-30)<=10):
+                self.pitch = self.box_size-value*-30
+            else:
+                self.pitch = 0 
+        else:
+            self.pitch = 0
+
+    def get_pitch(self):
+        return self.pitch
 
 class Move_drone(threading.Thread):
     def __init__(self, bebop, process):
@@ -53,29 +70,32 @@ class Move_drone(threading.Thread):
         self.roll = 0
         self.yaw = 0
         self.vertical_movement = 0
+        self.value = 0
 
     # def __del__(self):
     #     self.wait()
 
+    def get_yaw(self):
+        return self.yaw
+
+    def get_pitch(self):
+        return self.pitch
+
     def land(self):
         self.bebop.land()
+    def get_value(self):
+        return self.value
 
     def kill(self):
         self.killed = True
         print("Drone Killed")
         self.bebop.emergency_land()
 
-    def set_distance(self, value):
-        if(self.process.get_box_size() > 0):
-            self.velocity = (self.process.box_size-value)*10
-        else:
-            self.velocity = 0
+
     def run(self):
-        #self.bebop.safe_takeoff(5)
+        self.bebop.safe_takeoff(5)
         #self.bebop.fly_direct(roll=0, yaw=0, pitch=0, vertical_movement=10, duration=3)
         while self.killed == False:
             self.yaw = self.process.get_rotation()
-            #pitch = self.process.get_velocity()
-            print("yaw:", self.yaw)
-            print("pitch:", self.velocity)
-            #self.bebop.fly_direct(roll=0, yaw=yaw, pitch=self.velocity, vertical_movement=0, duration=0.1)
+            self.pitch = self.process.get_pitch()
+            self.bebop.fly_direct(roll=0, yaw=self.yaw, pitch=self.pitch, vertical_movement=0, duration=0.1)

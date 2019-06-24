@@ -28,7 +28,7 @@ success = bebop.connect(5)
 move = Move_drone(bebop, process)
 print("GUI created")
 
-vision = DroneVisionGUI(bebop, move=move, is_bebop=True,
+vision = DroneVisionGUI(bebop, move=move, process=process, is_bebop=True,
                         user_args=(bebop,))
 
 #GUI.run()

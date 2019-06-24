@@ -104,16 +104,7 @@ class Drone_Net(threading.Thread):
                         (boxes, scores, classes, num_detections) = sess.run(
                             [boxes, scores, classes, num_detections],
                             feed_dict={image_tensor: image_np_expanded})
-                        # Visualization of the results of a detection.
-                        # vis_util.visualize_boxes_and_labels_on_image_array(
-                        #     image_np,
-                        #     np.squeeze(boxes),
-                        #     np.squeeze(classes).astype(np.int32),
-                        #     np.squeeze(scores),
-                        #     self.category_index,
-                        #     use_normalized_coordinates=True,
-                        #     line_thickness=8,
-                        #     only_get=1)
+                        # returns all box coordinates as a double array ([[ymin, xmin, ymax, xmax]]_
                         box = vis_util.get_box_coordinates(image_np,
                                                            np.squeeze(boxes),
                                                            np.squeeze(classes).astype(np.int32),
@@ -122,17 +113,11 @@ class Drone_Net(threading.Thread):
                                                            use_normalized_coordinates=True,
                                                            line_thickness=8,
                                                            only_get=1)
-                        #print("box:", box)
-                        box = np.array(box)
+                        box = self.compute_boxes(box)
                         if(not box.sum() == 0):
                             box = box[0]
-                         #   print(box)
                             self.process.compute(box[0], box[1], box[2], box[3])
-                            #print("something")
-                    # cv2.imshow('object detection', cv2.resize(image_np, (800, 600)))
-                    #
-                    # if cv2.waitKey(10) & 0xFF == ord('q'):
-                    #     cv2.destroyAllWindows()
-                    #     break
 
-    # get the box dimensions
+    def compute_boxes(self, coordinates):
+        coordinates = np.array(coordinates)
+        return coordinates
