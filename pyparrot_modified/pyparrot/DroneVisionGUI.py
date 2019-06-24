@@ -14,20 +14,20 @@ Author: Amy McGovern, dramymcgovern@gmail.com
 Some of the LIBVLC code comes from
 Author: Valentin Benke, valentin.benke@aon.at
 """
-import cv2
+import inspect
+import sys
+import threading
 import time
-import os
 from functools import partial
 from os.path import join
-import inspect
-import tempfile
-import sys
-import pyparrot_modified.pyparrot.utils.vlc as vlc
+
+import cv2
 from PyQt5.QtCore import Qt, QTimer, QThread
 from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtWidgets import QMainWindow, QWidget, QFrame, QSlider, QHBoxLayout, QPushButton, \
-    QVBoxLayout, QAction, QFileDialog, QApplication, QLabel, QProgressBar
-import threading
+    QVBoxLayout, QApplication, QLabel, QProgressBar
+
+import pyparrot_modified.pyparrot.utils.vlc as vlc
 
 
 class Player(QMainWindow):
@@ -58,6 +58,7 @@ class Player(QMainWindow):
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
     """
+
     def __init__(self, vlc_player, drone_gui, move, process):
         """
         Create a UI window for the VLC player
@@ -78,7 +79,7 @@ class Player(QMainWindow):
         self.createUI()
 
     def set_values(self, yaw, pitch):
-        self.pbar.setValue(yaw)
+        self.yaw_bar.setValue(yaw)
         self.pitch_bar.setValue(pitch)
 
     # here the GUI and all it's buttons are created
@@ -90,14 +91,14 @@ class Player(QMainWindow):
         self.setCentralWidget(self.widget)
 
         # In this widget, the video will be drawn
-        if sys.platform == "darwin": # for MacOS
+        if sys.platform == "darwin":  # for MacOS
             from PyQt5.QtWidgets import QMacCocoaViewContainer
             self.videoframe = QMacCocoaViewContainer(0)
         else:
             self.videoframe = QFrame()
         self.palette = self.videoframe.palette()
-        self.palette.setColor (QPalette.Window,
-                               QColor(0,0,0))
+        self.palette.setColor(QPalette.Window,
+                              QColor(0, 0, 0))
         self.videoframe.setPalette(self.palette)
         self.videoframe.setAutoFillBackground(True)
 
@@ -122,18 +123,24 @@ class Player(QMainWindow):
         self.vboxlayout.addWidget(self.videoframe)
         self.vboxlayout.addLayout(self.hbuttonbox)
 
+        # determined how far away from the tracked object the drone should be
         sld = QSlider(Qt.Horizontal, self)
         sld.setFocusPolicy(Qt.NoFocus)
         sld.setGeometry(30, 40, 100, 30)
-        sld.valueChanged[int].connect(self.change_distance) # slide goes from 0 to -1000
+        sld.setValue(50)
+        sld.valueChanged[int].connect(self.change_distance)
 
-        self.pbar = QProgressBar(self)
-        self.pbar.setGeometry(30, 40, 200, 25)
-        self.pbar.move(0, 100)
+        # shows how much the drone 'wants' to rotate to the left/right
+        # (this corresponds to where on the x-axis the tracked object is)
+        self.yaw_bar = QProgressBar(self)
+        self.yaw_bar.setGeometry(30, 40, 200, 25)
+        self.yaw_bar.move(0, 100)
 
+        # shows how much the drone 'wants' to go forwards/backwards
+        # (corresponds to how far away the tracked object is)
         self.pitch_bar = QProgressBar(self)
         self.pitch_bar.setGeometry(30, 40, 200, 25)
-        self.pitch_bar.move(0,200)
+        self.pitch_bar.move(0, 200)
         self.pitch_bar.setValue(60)
 
         self.label = QLabel(self)
@@ -144,23 +151,22 @@ class Player(QMainWindow):
 
         self.widget.setLayout(self.vboxlayout)
 
-
-
         # the media player has to be 'connected' to the QFrame
         # (otherwise a video would be displayed in it's own window)
         # this is platform specific!
         # you have to give the id of the QFrame (or similar object) to
         # vlc, different platforms have different functions for this
-        if sys.platform.startswith('linux'): # for Linux using the X Server
+        if sys.platform.startswith('linux'):  # for Linux using the X Server
             self.mediaplayer.set_xwindow(self.videoframe.winId())
-        elif sys.platform == "win32": # for Windows
+        elif sys.platform == "win32":  # for Windows
             self.mediaplayer.set_hwnd(self.videoframe.winId())
-        elif sys.platform == "darwin": # for MacOS
+        elif sys.platform == "darwin":  # for MacOS
             self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
 
     def change_distance(self, value):
         # convert the slider input to 0 to 1 and feed it to the movement function
-        self.process.set_distance(value/(100))
+        self.process.set_distance(value / (100))
+
 
 class UserVisionProcessingThread(QThread):
 
@@ -243,7 +249,7 @@ class DroneVisionGUI(threading.Thread):
         # has the land button been clicked - saved in case the user needs it in their code
         self.land_button_clicked = False
 
-        #index to label saved images
+        # index to label saved images
         self.index = 0
 
     def run_user_code(self, button):
@@ -253,7 +259,6 @@ class DroneVisionGUI(threading.Thread):
         """
         button.setEnabled(False)
         self.user_thread.start()
-
 
     def set_user_callback_function(self, user_callback_function=None, user_callback_args=None):
         """
@@ -266,7 +271,7 @@ class DroneVisionGUI(threading.Thread):
         """
         self.user_vision_thread = UserVisionProcessingThread(user_callback_function, user_callback_args, self)
 
-
+    # thread in which the video stream is started and running
     def run(self):
         """
         Open the video stream using vlc.  Note that this version is blocking meaning
@@ -309,8 +314,7 @@ class DroneVisionGUI(threading.Thread):
         self.player = vlc.MediaPlayer(self.stream_adress, ":network-caching=" + str(self.network_caching))
 
         # start the buffering
-        success = self._start_video_buffering()
-
+        self._start_video_buffering()
 
     def _start_video_buffering(self):
         """
@@ -344,43 +348,33 @@ class DroneVisionGUI(threading.Thread):
         # start the GUI loop
         app.exec()
 
-
     def _buffer_vision(self):
         """
         Internal method to save valid video captures from the camera fps times a second
 
         :return:
         """
-        #start with no new data
+        # start with no new data
         self.new_frame = False
 
         # run forever, trying to grab the latest image
         if (self.vision_running):
             # generate a temporary file, gets deleted after usage automatically
-            #self.file = tempfile.NamedTemporaryFile(dir=self.imagePath)
+            # self.file = tempfile.NamedTemporaryFile(dir=self.imagePath)
             self.file = join(self.imagePath, "visionStream.jpg")
-            #self.file = tempfile.SpooledTemporaryFile(max_size=32768)
+            # self.file = tempfile.SpooledTemporaryFile(max_size=32768)
             # save the current picture from the stream
             self.player.video_take_snapshot(0, self.file, 0, 0)
-            self.vlc_gui.set_values(50 + self.move.get_yaw(), 50+self.move.get_pitch())
+            self.vlc_gui.set_values(50 + self.move.get_yaw(), 50 + self.move.get_pitch())
             # read the picture into opencv
             self.img = cv2.imread(self.file)
-        #
-        #     # Hollyqui: saving all frames; you've gotta change the file path in order
-        #     # for it to work for you
-        #     path = "/home/felix/pyparrot/pyparrot/images"
-        #     # if (img is not None):
-        #     #     filename = "test_image_%06d.png" % self.index
-        #     #     cv2.imwrite(os.path.join(path , filename), img)
-        #     #     #print("image saved as: ", path + filename)
-        #     #     self.index += 1
-        #
+
             # sometimes cv2 returns a None object so skip putting those in the array
             if (self.img is not None):
                 # got a new image, save it to the buffer directly
                 self.buffer_index += 1
                 self.buffer_index %= self.buffer_size
-                #print video_frame
+                # print video_frame
                 self.buffer[self.buffer_index] = self.img
                 self.new_frame = True
 
@@ -433,8 +427,6 @@ class DroneVisionGUI(threading.Thread):
         else:
             if (not self.drone_object.is_landed()):
                 self.drone_object.safe_land(5)
-
-
 
     def close_video(self):
         """
