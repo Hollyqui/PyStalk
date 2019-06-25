@@ -20,7 +20,7 @@ Remark: We also tried to build our own CNN
 # Materials and methods 
 	*Data acquisition and processing
 	
-![Photo extraction from video](https://i.imgur.com/1MYnlmA.gif)
+![Photo extraction from video](https://giant.gfycat.com/KlutzyHarmfulHypacrosaurus.webm)
 
 ![Bounding images](https://i.imgur.com/bMDI5wy.gif)
 
