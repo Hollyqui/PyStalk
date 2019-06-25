@@ -23,7 +23,6 @@ class Movement_processing:
         x = ((xmax + xmin) / 2 - 0.5) * 40
         self.rotation_dir = x
         self.tilt = y * (-1)
-        # print('compute running', self.rotation_dir, ' ', self.tilt)
         self.set_distance()
 
     # getters:
@@ -36,6 +35,8 @@ class Movement_processing:
     def get_rotation(self):
         return self.rotation_dir
 
+    def get_desired_box_size(self):
+        return self.max_box_size-self.min_box_size
     # setters:
     def set_tilt(self, tilt):
         self.tilt = tilt
@@ -54,6 +55,7 @@ class Movement_processing:
                 self.pitch = (self.box_size - self.min_box_size) * -30
             else:
                 self.pitch = 0
+            # self.pitch = (self.box_size-((self.min_box_size+self.max_box_size)/2))*(-30)
 
         else:
             self.pitch = 0
@@ -92,13 +94,14 @@ class Move_drone(threading.Thread):
 
     # the function that feeds the movement; runs as a separate thread
     def run(self):
-        #self.bebop.safe_takeoff(5)
+        self.bebop.safe_takeoff(5)
 
         # moves the drone as long as it wasn't killed
         while self.killed == False:
             self.yaw = self.process.get_rotation()
             self.tilt = self.process.get_tilt()
-            #self.bebop.fly_direct(roll=0, yaw=self.yaw, pitch=self.pitch, vertical_movement=0, duration=0.1)
+            self.pitch = self.process.get_pitch()
+            self.bebop.fly_direct(roll=0, yaw=self.yaw, pitch=0, vertical_movement=0, duration=0.1)
             if 60 >= self.camera_angle >= -60:
                 self.bebop.pan_tilt_camera_velocity(tilt_velocity=self.tilt, pan_velocity=0, duration=0.1)
                 self.camera_angle += self.tilt*0.1
