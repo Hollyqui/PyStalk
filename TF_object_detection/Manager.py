@@ -7,7 +7,7 @@ from pyparrot_modified.pyparrot.Bebop import Bebop
 from pyparrot_modified.pyparrot.DroneVisionGUI import DroneVisionGUI
 
 # this object computes the motion and then feeds it to
-# 'Move_drone' which then actually moves the drone accordinly
+# 'Move_drone' which then actually moves the drone accordingly
 process = Movement_processing()
 
 # creates the bebop object and connects to it
