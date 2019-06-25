@@ -20,7 +20,7 @@ import threading
 import time
 from functools import partial
 from os.path import join
-
+import numpy as np
 import cv2
 from PyQt5.QtCore import Qt, QTimer, QThread
 from PyQt5.QtGui import QPalette, QColor
@@ -397,8 +397,20 @@ class DroneVisionGUI(threading.Thread):
                     self.img = cv2.rectangle(self.img, (int(box[1]*width), int(box[0]*height)), (int(box[3]*width), int(box[2]*height)), (0, 0, 255), 7)
             if(adjusted_box is not None):
                 self.img = self.img = cv2.rectangle(self.img, (int(adjusted_box[1]*width), int(adjusted_box[0]*height)), (int(adjusted_box[3]*width), int(adjusted_box[2]*height)), (255, 255, 255), 5)
+                # x_center = abs((adjusted_box[3] + adjusted_box[1]) * width) / 2
+                # y_center = abs((adjusted_box[0] + adjusted_box[2]) * height) / 2
+                # x_adjusted = abs((adjusted_box[3] - adjusted_box[1]) * width)
+                # y_adjusted = abs((adjusted_box[0] - adjusted_box[2]) * height)
+                # ratio = abs(self.process.get_desired_box_size()/(x_adjusted * y_adjusted))
+                # self.img = cv2.rectangle(self.img, (int(x_center - x_adjusted * np.sqrt(ratio)), int(y_center - y_adjusted * np.sqrt(ratio))), (int(x_center + x_adjusted * np.sqrt(ratio)), int(y_center + y_adjusted * np.sqrt(ratio))), (255, 255, 0), 5)
             self.img = cv2.arrowedLine(self.img, (int(width/2), int(height/2)), (int(width/2+self.move.get_yaw()*10), int(height/2)), (0, 255, 0), 5)
             self.img = cv2.arrowedLine(self.img, (int(width / 2), int(height / 2)), (int(width / 2), int((height/2)+ self.move.get_tilt()*10)), (255, 0, 0), 5)
+            self.img = cv2.arrowedLine(self.img, (int(width / 2), int(height / 2)),
+                                       (int((width / 2)+ (self.move.get_pitch() * 10)), int(((height / 2) + (self.move.get_pitch() * 10)))), (0, 255, 255), 5)
+            print("pitch:", self.move.get_pitch())
+
+            # show desired box size
+
             cv2.imshow("stream:", self.img)
 
             # sometimes cv2 returns a None object so skip putting those in the array
