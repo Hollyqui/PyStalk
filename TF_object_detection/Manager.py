@@ -23,6 +23,7 @@ vision = DroneVisionGUI(bebop, move=move, process=process, is_bebop=True,
 
 # initialises neural net
 net = Drone_Net(vision=vision, process=process)
+vision.feed_net(net)
 
 # starts the thread in which the network starts the
 # the object detection
@@ -39,3 +40,4 @@ vision.start()
 # starts feeding movement information to the drone once everything else
 # is up and running
 move.start()
+print('move started')
