@@ -1,8 +1,8 @@
 from bluepy.btle import Peripheral, UUID, DefaultDelegate, BTLEException
-from pyparrot.utils.colorPrint import color_print
+from pyparrot_modified.pyparrot.utils.colorPrint import color_print
 import struct
 import time
-from pyparrot.commandsandsensors.DroneSensorParser import get_data_format_and_size
+from pyparrot_modified.pyparrot.commandsandsensors.DroneSensorParser import get_data_format_and_size
 from datetime import datetime
 
 class MinidroneDelegate(DefaultDelegate):

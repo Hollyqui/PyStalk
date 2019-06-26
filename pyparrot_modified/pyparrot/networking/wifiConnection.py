@@ -10,10 +10,10 @@ import time
 import socket
 import ipaddress
 import json
-from pyparrot.utils.colorPrint import color_print
+from pyparrot_modified.pyparrot.utils.colorPrint import color_print
 import struct
 import threading
-from pyparrot.commandsandsensors.DroneSensorParser import get_data_format_and_size
+from pyparrot_modified.pyparrot.commandsandsensors.DroneSensorParser import get_data_format_and_size
 
 class mDNSListener(object):
     """

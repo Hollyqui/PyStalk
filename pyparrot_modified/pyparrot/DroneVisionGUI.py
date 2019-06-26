@@ -103,6 +103,7 @@ class Player(QMainWindow):
         self.videoframe.setAutoFillBackground(True)
 
         self.hbuttonbox = QHBoxLayout()
+        self.secondbuttonbox = QHBoxLayout()
         self.playbutton = QPushButton("Run my program")
         self.hbuttonbox.addWidget(self.playbutton)
         self.playbutton.clicked.connect(partial(self.drone_vision.run_user_code, self.playbutton))
@@ -110,6 +111,9 @@ class Player(QMainWindow):
         self.landbutton = QPushButton("Land NOW")
         self.hbuttonbox.addWidget(self.landbutton)
         self.landbutton.clicked.connect(self.drone_vision.land)
+
+        self.raise_button = QPushButton("Raise Drone")
+        self.secondbuttonbox.addWidget(self.raise_button)
 
         self.landsafebutton = QPushButton("Land safe")
         self.hbuttonbox.addWidget(self.landsafebutton)
@@ -122,6 +126,7 @@ class Player(QMainWindow):
         self.vboxlayout = QVBoxLayout()
         self.vboxlayout.addWidget(self.videoframe)
         self.vboxlayout.addLayout(self.hbuttonbox)
+        self.vboxlayout.addLayout(self.secondbuttonbox)
 
         # determined how far away from the tracked object the drone should be
         sld = QSlider(Qt.Horizontal, self)

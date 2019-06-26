@@ -5,10 +5,10 @@ data back from the drone
 Author: Amy McGovern, dramymcgovern@gmail.com
 """
 import time
-from pyparrot.networking.wifiConnection import WifiConnection
-from pyparrot.utils.colorPrint import color_print
-from pyparrot.commandsandsensors.DroneCommandParser import DroneCommandParser
-from pyparrot.commandsandsensors.DroneSensorParser import DroneSensorParser
+from pyparrot_modified.pyparrot.networking.wifiConnection import WifiConnection
+from pyparrot_modified.pyparrot.utils.colorPrint import color_print
+from pyparrot_modified.pyparrot.commandsandsensors.DroneCommandParser import DroneCommandParser
+from pyparrot_modified.pyparrot.commandsandsensors.DroneSensorParser import DroneSensorParser
 from datetime import datetime
 
 class BebopSensors:
