@@ -20,12 +20,11 @@ class Drone_Net(threading.Thread):
         self.coordinates = None
         threading.Thread.__init__(self)
         # Define the video stream
-        self.cap = cv2.VideoCapture(0)  # Change only if you have more than one webcams
         self.vision = vision
         # What model to download.
         # Models can bee found here:
         # https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
-        MODEL_NAME = 'ssd_inception_v2_coco_2018_01_28'
+        MODEL_NAME = 'ssdlite_mobilenet_v2_coco_2018_05_09'
         MODEL_FILE = MODEL_NAME + '.tar.gz'
         DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
 
@@ -68,7 +67,6 @@ class Drone_Net(threading.Thread):
         categories = label_map_util.convert_label_map_to_categories(
             label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
         self.category_index = label_map_util.create_category_index(categories)
-
     # Helper code
     def load_image_into_numpy_array(image):
         (im_width, im_height) = image.size
@@ -86,8 +84,6 @@ class Drone_Net(threading.Thread):
                 while True:
                     # Read frame from camera
                     image_np = self.vision.get_latest_valid_picture()
-                    # print(image_np)
-                    # ret, image_np = self.cap.read()
                     if (image_np is not None):
                         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
                         image_np_expanded = np.expand_dims(image_np, axis=0)
@@ -116,6 +112,7 @@ class Drone_Net(threading.Thread):
                                                            line_thickness=8,
                                                            only_get=1)
                         box = self.compute_boxes(self.boxes)
+
                         if (box is not None):
                             self.process.compute(box[0], box[1], box[2], box[3])
                         else:
@@ -123,9 +120,7 @@ class Drone_Net(threading.Thread):
                             self.process.set_rotation(0)
                             self.process.set_tilt(0)
 
-    # for now a placeholder function; this will computer what the 'correct' box out of the list is,
-    # and what's it 'proper' position is; e.g. if there's a frame where it doesn't detect anything it will
-    # fill in a box for that frame
+
     def compute_boxes(self, coordinates):
         coordinates = np.array(coordinates)
         if (not coordinates.sum() == 0):
@@ -170,5 +165,7 @@ class Drone_Net(threading.Thread):
             return np.array(self.boxes)
 
     def get_adjusted_box(self):
-        return self.last_box
-
+        if(len(self.storage)== 0):
+            return None
+        else:
+            return self.last_box

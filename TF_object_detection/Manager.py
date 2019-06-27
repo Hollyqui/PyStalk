@@ -1,6 +1,7 @@
 import time
 
 from Drone_Net import Drone_Net
+from Drone_Net_Test import Drone_Net_Test
 from Movement_Processing import Move_drone
 from Movement_Processing import Movement_processing
 from pyparrot_modified.pyparrot.Bebop import Bebop
@@ -18,12 +19,16 @@ bebop.connect(5)
 move = Move_drone(bebop, process)
 
 # creates the GUI that will initiate the video stream
+# if testing is true video is streamed from the webcam (this has to be used
+# in combination with Drone_Net_Test as the network
 vision = DroneVisionGUI(bebop, move=move, process=process, is_bebop=True,
-                        user_args=(bebop,))
+                        user_args=(bebop,), testing=True)
 
 # initialises neural net
-net = Drone_Net(vision=vision, process=process)
+net = Drone_Net_Test(vision=vision, process=process)
+
 vision.feed_net(net)
+move.feed_net(net)
 
 # starts the thread in which the network starts the
 # the object detection
