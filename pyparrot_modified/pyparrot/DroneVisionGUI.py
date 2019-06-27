@@ -79,8 +79,9 @@ class Player(QMainWindow):
         self.createUI()
 
     def set_values(self, yaw, pitch):
-        self.yaw_bar.setValue(yaw)
-        self.pitch_bar.setValue(pitch)
+        pass
+        # self.yaw_bar.setValue(yaw)
+        # self.pitch_bar.setValue(pitch)
 
     # here the GUI and all it's buttons are created
     def createUI(self):
@@ -103,17 +104,21 @@ class Player(QMainWindow):
         self.videoframe.setAutoFillBackground(True)
 
         self.hbuttonbox = QHBoxLayout()
-        self.secondbuttonbox = QHBoxLayout()
-        self.playbutton = QPushButton("Run my program")
+        self.raise_lower_box = QHBoxLayout()
+        self.forward_box = QHBoxLayout()
+        self.left_right_box = QHBoxLayout()
+        self.backward_box = QHBoxLayout()
+        self.toggle_box = QHBoxLayout()
+
+
+        self.playbutton = QPushButton("Start")
         self.hbuttonbox.addWidget(self.playbutton)
-        self.playbutton.clicked.connect(partial(self.drone_vision.run_user_code, self.playbutton))
+        self.playbutton.clicked.connect(partial(self.move.restart))
 
         self.landbutton = QPushButton("Land NOW")
         self.hbuttonbox.addWidget(self.landbutton)
         self.landbutton.clicked.connect(self.drone_vision.land)
 
-        self.raise_button = QPushButton("Raise Drone")
-        self.secondbuttonbox.addWidget(self.raise_button)
 
         self.landsafebutton = QPushButton("Land safe")
         self.hbuttonbox.addWidget(self.landsafebutton)
@@ -123,10 +128,50 @@ class Player(QMainWindow):
         self.hbuttonbox.addWidget(self.stopbutton)
         self.stopbutton.clicked.connect(self.drone_vision.close_exit)
 
+        self.raise_button = QPushButton("Raise Drone")
+        self.raise_lower_box.addWidget(self.raise_button)
+        self.raise_button.clicked.connect(self.move.raise_drone)
+
+        self.lower_button = QPushButton("Lower Drone")
+        self.raise_lower_box.addWidget(self.lower_button)
+        self.lower_button.clicked.connect(self.move.lower_drone)
+
+        self.forward_button = QPushButton("^")
+        self.forward_box.addWidget(self.forward_button)
+        self.forward_button.clicked.connect(self.move.drone_forward)
+
+        self.left_button = QPushButton("<")
+        self.hover_button = QPushButton("o")
+        self.right_button = QPushButton(">")
+
+        self.left_right_box.addWidget(self.left_button)
+        self.left_right_box.addWidget(self.hover_button)
+        self.left_right_box.addWidget(self.right_button)
+
+        self.left_button.clicked.connect(self.move.drone_left)
+        self.hover_button.clicked.connect(self.move.drone_hover)
+        self.right_button.clicked.connect(self.move.drone_right)
+
+        self.backward_button = QPushButton("v")
+        self.backward_box.addWidget(self.backward_button)
+        self.backward_button.clicked.connect(self.move.drone_right)
+
+        self.rotation_button = QPushButton("Rotation Track")
+        self.toggle_box.addWidget(self.rotation_button)
+        self.rotation_button.clicked.connect(self.move.rotate_true)
+
+        self.fixed_button = QPushButton("Fixed Track")
+        self.toggle_box.addWidget(self.fixed_button)
+        self.fixed_button.clicked.connect(self.move.rotate_false)
+
         self.vboxlayout = QVBoxLayout()
         self.vboxlayout.addWidget(self.videoframe)
         self.vboxlayout.addLayout(self.hbuttonbox)
-        self.vboxlayout.addLayout(self.secondbuttonbox)
+        self.vboxlayout.addLayout(self.raise_lower_box)
+        self.vboxlayout.addLayout(self.forward_box)
+        self.vboxlayout.addLayout(self.left_right_box)
+        self.vboxlayout.addLayout(self.backward_box)
+        self.vboxlayout.addLayout(self.toggle_box)
 
         # determined how far away from the tracked object the drone should be
         sld = QSlider(Qt.Horizontal, self)
@@ -140,20 +185,20 @@ class Player(QMainWindow):
         sld1.setGeometry(30, 40, 100, 30)
         sld1.setValue(40)
         sld1.valueChanged[int].connect(self.change_box_size_min)
-        sld1.move(100, 0)
+        sld1.move(30, 60)
 
         # shows how much the drone 'wants' to rotate to the left/right
         # (this corresponds to where on the x-axis the tracked object is)
-        self.yaw_bar = QProgressBar(self)
-        self.yaw_bar.setGeometry(30, 40, 200, 25)
-        self.yaw_bar.move(0, 100)
-
-        # shows how much the drone 'wants' to go forwards/backwards
-        # (corresponds to how far away the tracked object is)
-        self.pitch_bar = QProgressBar(self)
-        self.pitch_bar.setGeometry(30, 40, 200, 25)
-        self.pitch_bar.move(0, 200)
-        self.pitch_bar.setValue(60)
+        # self.yaw_bar = QProgressBar(self)
+        # self.yaw_bar.setGeometry(30, 40, 200, 25)
+        # self.yaw_bar.move(0, 100)
+        #
+        # # shows how much the drone 'wants' to go forwards/backwards
+        # # (corresponds to how far away the tracked object is)
+        # self.pitch_bar = QProgressBar(self)
+        # self.pitch_bar.setGeometry(30, 40, 200, 25)
+        # self.pitch_bar.move(0, 200)
+        # self.pitch_bar.setValue(60)
 
         self.label = QLabel(self)
 
@@ -215,10 +260,11 @@ class UserVisionProcessingThread(QThread):
 
 class DroneVisionGUI(threading.Thread):
 
-    def __init__(self, drone_object, is_bebop, user_args, move, process, buffer_size=100, network_caching=200, fps=20):
+    def __init__(self, drone_object, is_bebop, user_args, move, process, buffer_size=10, network_caching=20, fps=30, testing=False,):
         threading.Thread.__init__(self)
         self.move = move
         self.process = process
+        self.testing = testing
         self.net = None
         """
         Setup your vision object and initialize your buffers.  You won't start seeing pictures
@@ -379,41 +425,57 @@ class DroneVisionGUI(threading.Thread):
 
         # run forever, trying to grab the latest image
         if (self.vision_running):
-            # generate a temporary file, gets deleted after usage automatically
-            # self.file = tempfile.NamedTemporaryFile(dir=self.imagePath)
-            self.file = join(self.imagePath, "visionStream.jpg")
-            # self.file = tempfile.SpooledTemporaryFile(max_size=32768)
-            # save the current picture from the stream
-            self.player.video_take_snapshot(0, self.file, 0, 0)
-            self.vlc_gui.set_values(50 + self.move.get_yaw(), 50 + self.move.get_pitch())
-            # read the picture into opencv
-            self.img = cv2.imread(self.file)
-            self.img = cv2.resize(self.img, (856, 480))
+            if(self.testing == True):
+                self.img = self.net.get_image()
+                width = 800
+                height = 600
+
+            else:
+                # generate a temporary file, gets deleted after usage automatically
+                # self.file = tempfile.NamedTemporaryFile(dir=self.imagePath)
+                self.file = join(self.imagePath, "visionStream.jpg")
+                # self.file = tempfile.SpooledTemporaryFile(max_size=32768)
+                # save the current picture from the stream
+                self.player.video_take_snapshot(0, self.file, 0, 0)
+                #self.vlc_gui.set_values(50 + self.move.get_yaw(), 50 + self.move.get_pitch())
+                # read the picture into opencv
+                self.img = cv2.imread(self.file)
+                self.img = cv2.resize(self.img, (856, 480))
+                #height, width, channels = self.img.shape
+                width = 860
+                height = 480
+
 
             boxes = self.net.get_boxes()
             adjusted_box = self.net.get_adjusted_box()
+            desired_size_min = self.process.get_min_box_size()
+            desired_size_max = self.process.get_max_box_size()
             # here a second stream is initialized showing all the frames with the corresponding boxes and
             # drone outputs
-            width = 860
-            height = 480
+
             if(boxes is not None):
                 for i in range(len(boxes)):
                     box = boxes[i]
                     self.img = cv2.rectangle(self.img, (int(box[1]*width), int(box[0]*height)), (int(box[3]*width), int(box[2]*height)), (0, 0, 255), 7)
             if(adjusted_box is not None):
                 self.img = self.img = cv2.rectangle(self.img, (int(adjusted_box[1]*width), int(adjusted_box[0]*height)), (int(adjusted_box[3]*width), int(adjusted_box[2]*height)), (255, 255, 255), 5)
-                # x_center = abs((adjusted_box[3] + adjusted_box[1]) * width) / 2
-                # y_center = abs((adjusted_box[0] + adjusted_box[2]) * height) / 2
-                # x_adjusted = abs((adjusted_box[3] - adjusted_box[1]) * width)
-                # y_adjusted = abs((adjusted_box[0] - adjusted_box[2]) * height)
-                # ratio = abs(self.process.get_desired_box_size()/(x_adjusted * y_adjusted))
-                # self.img = cv2.rectangle(self.img, (int(x_center - x_adjusted * np.sqrt(ratio)), int(y_center - y_adjusted * np.sqrt(ratio))), (int(x_center + x_adjusted * np.sqrt(ratio)), int(y_center + y_adjusted * np.sqrt(ratio))), (255, 255, 0), 5)
-            self.img = cv2.arrowedLine(self.img, (int(width/2), int(height/2)), (int(width/2+self.move.get_yaw()*10), int(height/2)), (0, 255, 0), 5)
-            self.img = cv2.arrowedLine(self.img, (int(width / 2), int(height / 2)), (int(width / 2), int((height/2)+ self.move.get_tilt()*10)), (255, 0, 0), 5)
-            self.img = cv2.arrowedLine(self.img, (int(width / 2), int(height / 2)),
-                                       (int((width / 2)+ (self.move.get_pitch() * 10)), int(((height / 2) + (self.move.get_pitch() * 10)))), (0, 255, 255), 5)
-            print("pitch:", self.move.get_pitch())
+                x_center = abs(((adjusted_box[3] * width) + (adjusted_box[1]) * width)) / 2
+                y_center = abs(((adjusted_box[0] * height) + (adjusted_box[2]) * height)) / 2
+                x_adjusted = abs(((adjusted_box[3] * width) - (adjusted_box[1]) * width))
+                y_adjusted = abs(((adjusted_box[0] * height) - (adjusted_box[2]) * height))
+                desired_x_min = np.sqrt((desired_size_min * width*height*x_adjusted)/y_adjusted)
+                desired_y_min = np.sqrt((desired_size_min * width*height*y_adjusted)/x_adjusted)
+                desired_x_max = np.sqrt((desired_size_max * width * height * x_adjusted) / y_adjusted)
+                desired_y_max = np.sqrt((desired_size_max * width * height * y_adjusted) / x_adjusted)
 
+                self.img = cv2.arrowedLine(self.img, (int(width/2), int(height/2)), (int(width/2+self.move.get_yaw()*10), int(height/2)), (0, 255, 0), 5)
+                self.img = cv2.arrowedLine(self.img, (int(width / 2), int(height / 2)), (int(width / 2), int((height/2)+ self.move.get_tilt()*10)), (255, 0, 0), 5)
+                self.img = cv2.arrowedLine(self.img, (int(width / 2), int(height / 2)),
+                                           (int((width / 2)+ (self.move.get_pitch() * 10)), int(((height / 2) + (self.move.get_pitch() * -10)))), (0, 255, 255), 5)
+                self.img = cv2.rectangle(self.img, (int(x_center-desired_x_min/2), int(y_center-desired_y_min/2)), (int(x_center+desired_x_min/2), int(y_center+desired_y_min/2)), (255, 255, 0), 5)
+                self.img = cv2.rectangle(self.img, (int(x_center - desired_x_max / 2), int(y_center - desired_y_max / 2)),
+                                         (int(x_center + desired_x_max / 2), int(y_center + desired_y_max / 2)),
+                                         (255, 255, 0), 5)
             # show desired box size
 
             cv2.imshow("stream:", self.img)
