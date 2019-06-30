@@ -427,6 +427,7 @@ class DroneVisionGUI(threading.Thread):
         if (self.vision_running):
             if(self.testing == True):
                 self.img = self.net.get_image()
+                img_backup = self.img
                 width = 800
                 height = 600
 
@@ -440,10 +441,11 @@ class DroneVisionGUI(threading.Thread):
                 #self.vlc_gui.set_values(50 + self.move.get_yaw(), 50 + self.move.get_pitch())
                 # read the picture into opencv
                 self.img = cv2.imread(self.file)
-                self.img = cv2.resize(self.img, (856, 480))
-                #height, width, channels = self.img.shape
-                width = 860
-                height = 480
+                img_backup = self.img
+                self.img = cv2.resize(self.img, (426, 240))
+                height, width, channels = self.img.shape
+                # width = 640
+                # height = 480
 
 
             boxes = self.net.get_boxes()
@@ -486,7 +488,7 @@ class DroneVisionGUI(threading.Thread):
                 self.buffer_index += 1
                 self.buffer_index %= self.buffer_size
                 # print video_frame
-                self.buffer[self.buffer_index] = self.img
+                self.buffer[self.buffer_index] = img_backup
                 self.new_frame = True
 
     def get_latest_valid_picture(self):

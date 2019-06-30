@@ -75,12 +75,13 @@ class Movement_processing:
 
 
 class Move_drone(threading.Thread):
-    def __init__(self, bebop, process):
+    def __init__(self, bebop, process, success):
         """
         :param user_function: user code to run (presumably flies the drone)
         :param user_args: optional arguments to the user function
         """
         threading.Thread.__init__(self)
+        self.success = success
         self.net = None
         self.bebop = bebop
         self.process = process
@@ -168,15 +169,15 @@ class Move_drone(threading.Thread):
     # the function that feeds the movement; runs as a separate thread
     def run(self):
         # self.bebop.safe_takeoff(5)
-        self.bebop.set_video_resolutions('rec1080_stream420')
-        self.bebop.set_video_recording('time')
-        self.bebop.set_video_stream_mode('low_latency')
-        #makes the drone patroll if no target is detected
-
+        if(self.success):
+            self.bebop.set_video_resolutions('rec1080_stream480')
+            self.bebop.set_video_recording('time')
+            self.bebop.set_video_stream_mode('low_latency')
+        # makes the drone patroll if no target is detected
 
         # moves the drone as long as it wasn't killed
-        while(self.killed == False):
-            if((not self.camera_angle ==-60 or not self.camera_angle ==  60) and self.hovering == False):
+        while (self.killed == False):
+            if ((not self.camera_angle == -60 or not self.camera_angle == 60) and self.hovering == False):
                 self.yaw = self.process.get_rotation()
                 self.tilt = self.process.get_tilt()
                 self.pitch = self.process.get_pitch()
@@ -185,14 +186,14 @@ class Move_drone(threading.Thread):
                 #     print("Drone Discombobulated")
                 # # rotates to track object's left/right movement
                 # else:
-                if(self.rotate == True):
+                if (self.rotate == True):
                     self.bebop.fly_direct(roll=0, yaw=self.yaw, pitch=self.pitch, vertical_movement=0, duration=0.1)
                 # moves left/right itself to track object's left/right movement
-                elif(self.rotate == False):
+                elif (self.rotate == False):
                     self.bebop.fly_direct(roll=self.yaw, yaw=0, pitch=self.pitch, vertical_movement=0, duration=0.1)
                 # if 60 >= self.camera_angle >= -60:
                 self.bebop.pan_tilt_camera_velocity(tilt_velocity=self.tilt, pan_velocity=0, duration=0.1)
-                self.camera_angle += self.tilt*0.1
+                self.camera_angle += self.tilt * 0.1
 
     # all the getter functions:
     def get_pitch(self):

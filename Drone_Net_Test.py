@@ -130,14 +130,6 @@ class Drone_Net_Test(threading.Thread):
                             self.process.set_rotation(0)
                             self.process.set_tilt(0)
 
-                    # # Display output
-                    # cv2.imshow('object detection', img)
-                    #
-                    # if cv2.waitKey(10) & 0xFF == ord('q'):
-                    #     cv2.destroyAllWindows()
-                    #     break
-
-
     def compute_boxes(self, coordinates):
         coordinates = np.array(coordinates)
         if (not coordinates.sum() == 0):
