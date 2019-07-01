@@ -1,55 +1,23 @@
 # Bebop2-Animal-Tracking
 Code for a Parrot Bebop 2 drone to track animals (will be verified using dogs) steered autonomously from a computer using computer vision.
-		
-# Draft outline
 
-Aim: Using Machine Learning and Computer Vision to create and autonomous surveillance drone (will be verified using dogs)
-Idea: The website would be linked (specific dialog references) to a jupypter notebook aka. tutorials
-Remark: We also tried to build our own CNN
+Aim: Using Machine Learning and Computer Vision to create and autonomous surveillance drone (will be verified using people)
 
-# Introduction & Theory
-	* General backround: anti-poaching, animal surveillance
-	* Aims and goals
-	* A.I: Convolutional Neural Network : 
-		-brief intro
-		-how are we using it 
-		-ADD DIAGRAM
-	*Interfaces: Computer vision & motion 
-		-computer vision & coordinates in space 
-		-drone reaction: specific motion according to CNN results
-# Materials and methods 
-	*Data acquisition and processing
-	
-![Photo extraction from video](https://i.imgur.com/1MYnlmA.gif)
+# Explaining the folders
 
-![Bounding images](https://i.imgur.com/bMDI5wy.gif)
+## Tutorials
+The tutorial folder contains all the instructions for running the PyStalk project
 
-	*Python & Keras/Tensorflow
-	*Objection detection software by tensorflow
-	*How to build a CNN 
-	*How to train the CNN
-	*Drone Hardware 
-	*Drone software: link to installation guide
-# Results
-	*Video of the CNN output: loss decrease
-	*Video of object recognition
-	*Video of the motion drone following a person
-		
-# Discussion 
-	*Technical problems in the context of the animal surveillance
-		-flying into trees
-		-drone autonomy
-		-limited resources
-	*Optimisation
-		-two other keras backengines 
-		-flight path
-		-;ultiple threading
-		
-# Conclusion & Future Ideas 
-	*provide more operating systems compatibility
-	*thermovision
-	*lack of guaranty taht the action send is actually performed (sensors)
-	
+5 tutorials are available:
 
+- The “short python intro” can be used to get the basics of Python programming language.
+- The “intro_to_neural_nets” provides a general introduction to neural networks. The theory is applied to a letter recognition example. 
+- The “Using Convolutional Neural Networks to classify dogs and cats” provides a general way to use convolutional neural 	networks to classify images.
+- The “TF_model_tutorial” can be used as an instruction guide to install all the packages needed to run the TensorFlow model ssd_inception_v2.
+- The “Getting ready with pyparrot_modified” provides an installation guide for all the libraries needed for the drone connectivity and the drone motion. 
 
-	
+## Object detection
+This folder contains the modified pre-trained TensorFlow model and all necessary utils which are needed for object detection
+
+## PyParrot Modified
+This folder contains all the script necessary for establishing the connection between the drone and the computer
